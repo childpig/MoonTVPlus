@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Blend, Cat, Clover, Container, Film, Globe, Home, Menu, Search, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
+import { Blend, BookOpen, Cat, Clover, Container, Film, Globe, Home, Menu, Search, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
@@ -186,6 +186,15 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
         label: '综艺',
         href: '/douban?type=show',
       },
+      ...(runtimeConfig?.BOOKS_ENABLED
+        ? [
+            {
+              icon: BookOpen,
+              label: '电子书馆',
+              href: '/books',
+            },
+          ]
+        : []),
       ...(runtimeConfig?.LIVE_ENABLED
         ? [
             {
@@ -337,8 +346,11 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
                     decodedActive === decodedItemHref ||
                     (decodedActive.startsWith('/douban') &&
                       decodedActive.includes(`type=${typeMatch}`)) ||
-                    // 对于没有type参数的路径，只比较路径名
-                    (!typeMatch && activePathname === itemPathname);
+                    // 对于没有type参数的路径，比较路径名（含子页面，如 /books/search）
+                    (!typeMatch &&
+                      (activePathname === itemPathname ||
+                        (itemPathname !== '/' &&
+                          activePathname.startsWith(`${itemPathname}/`))));
                   const Icon = item.icon;
                   return (
                     <Link
