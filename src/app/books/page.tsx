@@ -4,6 +4,7 @@ import { CheckCircle2, Compass, Search, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { bookCoverSrc } from '@/lib/book-cover';
 import { getAllBookReadRecords } from '@/lib/book.db.client';
 import { BookReadRecord, BookSource } from '@/lib/book.types';
 import { buildBookReadPath } from '@/lib/book-route-cache.client';
@@ -111,7 +112,7 @@ export default function BooksHomePage() {
       {currentRecord ? (
         <ContinueReadingCard
           title={currentRecord.title}
-          image={currentRecord.cover}
+          image={bookCoverSrc(currentRecord.sourceId, currentRecord.cover)}
           meta={readRecordMeta(currentRecord)}
           progress={currentRecord.progressPercent}
           href={buildBookReadPath(
@@ -158,7 +159,7 @@ export default function BooksHomePage() {
                 item={{
                   key: `${record.sourceId}-${record.bookId}`,
                   title: record.title,
-                  image: record.cover,
+                  image: bookCoverSrc(record.sourceId, record.cover),
                   progress: record.progressPercent,
                 }}
                 href={buildBookReadPath(
