@@ -1494,7 +1494,17 @@ export class LegadoClient {
       for (let page = 1; page <= DEFAULT_LEGADO_SEARCH_PAGES; page += 1) {
         const targetUrl = buildUrlFromTemplate(rule.searchUrl, source, q, page);
         const html = await fetchText(source, targetUrl, forceRefresh);
-        lastDiag = `target=${targetUrl.slice(0, 260)}, htmlLen=${html.length}, hasKey=${html.includes(q)}`;
+        lastDiag = `htmlLen=${html.length}, hasKey=${html.includes(q)}`;
+        if (page === 1 && attempt === 0) {
+          try {
+            const opt = splitUrlOptions(targetUrl);
+            const headersObj = buildHeaders(source) as Record<string, string>;
+            lastDiag += ` | headers=${encodeURIComponent(JSON.stringify(headersObj)).slice(0, 300)}`;
+            const bare = await fetch(opt.url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: opt.body });
+            const bareText = await bare.text();
+            lastDiag += ` | bareLen=${bareText.length}`;
+          } catch (e) { lastDiag += ' | bareErr=' + (e as Error).message; }
+        }
         applyRuleJsBlocks(html, rule.ruleSearch.bookList);
         let pageCount = 0;
       const json = parseJsonMaybe(html);
