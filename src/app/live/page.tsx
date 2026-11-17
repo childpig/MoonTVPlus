@@ -54,6 +54,20 @@ let Artplayer: any = null;
 let Hls: any = null;
 let flvjs: any = null;
 
+// https 页面下 http 流会被浏览器按混合内容拦截，此时强制走站点代理
+function getEffectiveProxyMode(
+  rawUrl: string,
+  configured?: 'full' | 'm3u8-only' | 'direct'
+): 'full' | 'm3u8-only' | 'direct' {
+  const mode = configured || 'full';
+  if (mode !== 'direct') return mode;
+  if (typeof window === 'undefined') return mode;
+  if (window.location.protocol === 'https:' && /^http:\/\//i.test(rawUrl)) {
+    return 'full';
+  }
+  return mode;
+}
+
 // 直播频道接口
 interface LiveChannel {
   id: string;
@@ -1449,7 +1463,7 @@ function LivePageClient() {
   };
 
   const getClientTestUrl = (rawUrl: string, source?: LiveSource | null) => {
-    const proxyMode = source?.proxyMode || 'full';
+    const proxyMode = getEffectiveProxyMode(rawUrl, source?.proxyMode);
     const lower = rawUrl.toLowerCase();
     const path = lower.split('?')[0];
     const isM3u = path.endsWith('.m3u8') || path.endsWith('.m3u') || lower.includes('.m3u8') || lower.includes('.m3u');
@@ -2130,7 +2144,10 @@ function LivePageClient() {
 
       // precheck type
       let type = 'm3u8';
-      const proxyMode = currentSourceRef.current?.proxyMode || 'full';
+      const proxyMode = getEffectiveProxyMode(
+        videoUrl,
+        currentSourceRef.current?.proxyMode
+      );
 
       // 直连模式：跳过服务器预检查，直接使用 m3u8
       if (proxyMode === 'direct') {
