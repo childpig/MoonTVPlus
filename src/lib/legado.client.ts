@@ -1484,6 +1484,7 @@ export class LegadoClient {
 
     const results: BookListItem[] = [];
     let lastAttemptError: unknown = null;
+    let lastDiag = '';
     for (let attempt = 0; attempt <= EMPTY_SEARCH_RETRIES; attempt += 1) {
       const forceRefresh = attempt > 0;
       const seen = new Set<string>();
@@ -1493,6 +1494,7 @@ export class LegadoClient {
       for (let page = 1; page <= DEFAULT_LEGADO_SEARCH_PAGES; page += 1) {
         const targetUrl = buildUrlFromTemplate(rule.searchUrl, source, q, page);
         const html = await fetchText(source, targetUrl, forceRefresh);
+        lastDiag = `htmlLen=${html.length}, hasKey=${html.includes(q)}, hasLi=${html.includes('<li')}`;
         applyRuleJsBlocks(html, rule.ruleSearch.bookList);
         let pageCount = 0;
       const json = parseJsonMaybe(html);
@@ -1576,6 +1578,8 @@ export class LegadoClient {
       searchCache.set(cacheKey, { data: results, expiresAt: Date.now() + cacheTTL });
     } else if (lastAttemptError) {
       throw lastAttemptError instanceof Error ? lastAttemptError : new Error('搜索失败');
+    } else {
+      throw new Error(`搜索无结果 (${lastDiag})`);
     }
     return { source, results };
   }
