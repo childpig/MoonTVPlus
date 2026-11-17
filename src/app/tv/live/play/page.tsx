@@ -50,8 +50,22 @@ function getUrlSourceType(rawUrl: string): TVPlayerSourceType | 'unknown' {
   return 'unknown';
 }
 
+// https 页面下 http 流会被浏览器按混合内容拦截，此时强制走站点代理
+function getEffectiveProxyMode(
+  rawUrl: string,
+  configured?: 'full' | 'm3u8-only' | 'direct'
+): 'full' | 'm3u8-only' | 'direct' {
+  const mode = configured || 'full';
+  if (mode !== 'direct') return mode;
+  if (typeof window === 'undefined') return mode;
+  if (window.location.protocol === 'https:' && /^http:\/\//i.test(rawUrl)) {
+    return 'full';
+  }
+  return mode;
+}
+
 async function resolveLiveUrl(rawUrl: string, source?: LiveSource | null): Promise<{ url: string; type: TVPlayerSourceType }> {
-  const proxyMode = source?.proxyMode || 'full';
+  const proxyMode = getEffectiveProxyMode(rawUrl, source?.proxyMode);
   const sourceType = getUrlSourceType(rawUrl);
 
   if (sourceType === 'm3u8') {
