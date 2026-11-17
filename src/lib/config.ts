@@ -444,8 +444,11 @@ async function getInitConfig(
 }
 
 export async function getConfig(): Promise<AdminConfig> {
-  // 直接使用内存缓存
-  if (cachedConfig) {
+  // DB 模式下多 isolate 内存不共享：保存配置只更新当前 isolate 的缓存，
+  // 其他 isolate 会读到旧值造成「保存后立即回退」。因此 DB 模式跳过内存缓存快路径，
+  // 每次从数据库读取；只有 localstorage 单实例模式才使用内存缓存。
+  const storageTypeForCache = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
+  if (storageTypeForCache === 'localstorage' && cachedConfig) {
     return cachedConfig;
   }
 
