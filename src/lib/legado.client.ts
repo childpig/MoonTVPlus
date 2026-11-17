@@ -32,7 +32,9 @@ interface ResolvedLegadoConfig {
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.LEGADO_TIMEOUT_MS || process.env.OPDS_TIMEOUT_MS || 20000);
 const MAX_TEXT_BYTES = Number(process.env.LEGADO_MAX_TEXT_BYTES || 3 * 1024 * 1024);
-const DEFAULT_LEGADO_SEARCH_PAGES = Number(process.env.LEGADO_SEARCH_PAGES || 5);
+const DEFAULT_LEGADO_SEARCH_PAGES = Number(process.env.LEGADO_SEARCH_PAGES || 2);
+const EMPTY_SEARCH_RETRIES = Math.max(0, Number(process.env.LEGADO_EMPTY_SEARCH_RETRIES || 3));
+const SEARCH_CONCURRENCY = Math.max(1, Number(process.env.LEGADO_SEARCH_CONCURRENCY || 4));
 const textCache = new Map<string, { expiresAt: number; data: string }>();
 const searchCache = new Map<string, { expiresAt: number; data: BookListItem[] }>();
 const detailCache = new Map<string, { expiresAt: number; data: BookDetail }>();
@@ -1273,7 +1275,7 @@ function mergeSetCookie(sourceId: string, setCookie: string | null) {
   cookieJar.set(sourceId, Array.from(current.entries()).map(([key, value]) => `${key}=${value}`).join('; '));
 }
 
-async function fetchText(source: BookSource, url: string): Promise<string> {
+async function fetchText(source: BookSource, url: string, forceRefresh = false): Promise<string> {
   if (!url?.trim()) throw new Error('书源请求地址为空');
   const request = splitUrlOptions(url);
   const safe = await validateProxyUrlServerSide(request.url);
@@ -1281,7 +1283,7 @@ async function fetchText(source: BookSource, url: string): Promise<string> {
   const cacheKey = `text|${source.id}|${request.method || 'GET'}|${request.url}|${request.body || ''}`;
   const cached = textCache.get(cacheKey);
   const { cacheTTL } = await resolveLegadoConfig();
-  if (cached && cached.expiresAt > Date.now()) return cached.data;
+  if (!forceRefresh && cached && cached.expiresAt > Date.now()) return cached.data;
 
   let lastError: unknown;
   const maxAttempts = Math.max(1, (request.retry ?? 2) + 1);
@@ -1478,18 +1480,21 @@ export class LegadoClient {
     const cacheKey = `search|${source.id}|${q}`;
     const { cacheTTL } = await resolveLegadoConfig();
     const cached = searchCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) return { source, results: cached.data };
+    if (cached && cached.expiresAt > Date.now() && cached.data.length > 0) return { source, results: cached.data };
 
     const results: BookListItem[] = [];
-    const seen = new Set<string>();
-    for (let page = 1; page <= DEFAULT_LEGADO_SEARCH_PAGES; page += 1) {
-      const targetUrl = buildUrlFromTemplate(rule.searchUrl, source, q, page);
-      const html = await fetchText(source, targetUrl);
-      applyRuleJsBlocks(html, rule.ruleSearch.bookList);
-      if (page === 1 && rule.ruleSearch.checkKeyWord && !html.includes(rule.ruleSearch.checkKeyWord) && !html.includes(q)) {
-        throw new Error('搜索结果校验失败');
-      }
-      let pageCount = 0;
+    let lastAttemptError: unknown = null;
+    for (let attempt = 0; attempt <= EMPTY_SEARCH_RETRIES; attempt += 1) {
+      const forceRefresh = attempt > 0;
+      const seen = new Set<string>();
+      results.length = 0;
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+      try {
+      for (let page = 1; page <= DEFAULT_LEGADO_SEARCH_PAGES; page += 1) {
+        const targetUrl = buildUrlFromTemplate(rule.searchUrl, source, q, page);
+        const html = await fetchText(source, targetUrl, forceRefresh);
+        applyRuleJsBlocks(html, rule.ruleSearch.bookList);
+        let pageCount = 0;
       const json = parseJsonMaybe(html);
       const searchBookListRule = stripRuleJsBlocks(rule.ruleSearch.bookList);
       if (json && ruleIsJson(searchBookListRule)) {
@@ -1560,8 +1565,18 @@ export class LegadoClient {
         });
       }
       if (pageCount === 0) break;
+      }
+      } catch (error) {
+        lastAttemptError = error;
+      }
+      // 空结果（或全部源解析失败）时重试：很多国内书源会间歇性返回空列表
+      if (results.length > 0) break;
     }
-    searchCache.set(cacheKey, { data: results, expiresAt: Date.now() + cacheTTL });
+    if (results.length > 0) {
+      searchCache.set(cacheKey, { data: results, expiresAt: Date.now() + cacheTTL });
+    } else if (lastAttemptError) {
+      throw lastAttemptError instanceof Error ? lastAttemptError : new Error('搜索失败');
+    }
     return { source, results };
   }
 
@@ -1569,14 +1584,20 @@ export class LegadoClient {
     const sources = await this.getSearchSources(sourceId);
     const results: BookListItem[] = [];
     const failedSources: BookSearchFailure[] = [];
-    await Promise.all(sources.map(async (source) => {
-      try {
-        const sourceResult = await this.searchBooksSource(q, source);
-        results.push(...sourceResult.results);
-      } catch (error) {
-        failedSources.push({ sourceId: source.id, sourceName: source.name, error: (error as Error).message });
+    // 限制并发，避免 Cloudflare Workers 单次 invocation 子请求数超限
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(SEARCH_CONCURRENCY, sources.length) }, async () => {
+      while (cursor < sources.length) {
+        const source = sources[cursor++];
+        try {
+          const sourceResult = await this.searchBooksSource(q, source);
+          results.push(...sourceResult.results);
+        } catch (error) {
+          failedSources.push({ sourceId: source.id, sourceName: source.name, error: (error as Error).message });
+        }
       }
-    }));
+    });
+    await Promise.all(workers);
     return { results, failedSources };
   }
 
