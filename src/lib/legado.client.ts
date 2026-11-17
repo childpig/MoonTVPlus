@@ -1494,7 +1494,7 @@ export class LegadoClient {
       for (let page = 1; page <= DEFAULT_LEGADO_SEARCH_PAGES; page += 1) {
         const targetUrl = buildUrlFromTemplate(rule.searchUrl, source, q, page);
         const html = await fetchText(source, targetUrl, forceRefresh);
-        lastDiag = `htmlLen=${html.length}, hasKey=${html.includes(q)}, hasLi=${html.includes('<li')}`;
+        lastDiag = `target=${targetUrl.slice(0, 260)}, htmlLen=${html.length}, hasKey=${html.includes(q)}`;
         applyRuleJsBlocks(html, rule.ruleSearch.bookList);
         let pageCount = 0;
       const json = parseJsonMaybe(html);
