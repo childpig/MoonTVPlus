@@ -1,3 +1,4 @@
+import { bookCoverSrc } from '@/lib/book-cover';
 import { BookListItem, BookReadRecord, BookShelfItem } from '@/lib/book.types';
 import {
   MangaReadRecord,
@@ -60,7 +61,7 @@ export const bookCardItem = (
 ): MediaCardItem => ({
   key: `${item.sourceId}-${bookIdOf(item)}`,
   title: item.title,
-  image: item.cover,
+  image: bookCoverSrc(item.sourceId, item.cover),
   meta: item.sourceName,
   subtitle: item.author || '未知作者',
   progress:
@@ -72,7 +73,7 @@ export const bookReadRecordCardItem = (
 ): MediaCardItem => ({
   key: `${record.sourceId}-${record.bookId}`,
   title: record.title,
-  image: record.cover,
+  image: bookCoverSrc(record.sourceId, record.cover),
   meta: record.sourceName,
   subtitle: [record.chapterTitle, record.author].filter(Boolean).join(' · '),
   progress: clampProgress(record.progressPercent),
