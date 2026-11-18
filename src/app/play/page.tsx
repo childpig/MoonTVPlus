@@ -1384,7 +1384,8 @@ function PlayPageClient() {
           const filteredAnimes = filterDanmakuSources(
             searchResult.animes,
             title,
-            videoYear
+            videoYear,
+            detailRef.current?.episodes_titles?.length
           );
 
           // 如果有多个匹配结果，先检查是否有记忆的选择
@@ -6301,7 +6302,8 @@ function PlayPageClient() {
   const filterDanmakuSources = (
     animes: DanmakuAnime[],
     videoTitle: string,
-    videoYear?: string
+    videoYear?: string,
+    videoEpisodeCount?: number
   ): DanmakuAnime[] => {
     if (animes.length <= 1) return animes;
 
@@ -6322,47 +6324,110 @@ function PlayPageClient() {
 
     const normalizedVideoTitle = normalizeTitle(videoTitle);
 
+    // 匹配度打分：标题精确度 + 年份是否一致 + 总集数是否接近
+    // 分数越高越可能是同一部作品，用于在候选池内排序
+    const scoreOf = (anime: DanmakuAnime): number => {
+      let score = 0;
+      const animeTitle = normalizeTitle(anime.animeTitle);
+
+      if (animeTitle === normalizedVideoTitle) {
+        score += 100;
+      } else if (
+        animeTitle.startsWith(normalizedVideoTitle) ||
+        normalizedVideoTitle.startsWith(animeTitle)
+      ) {
+        score += 70;
+      } else if (
+        animeTitle.includes(normalizedVideoTitle) ||
+        normalizedVideoTitle.includes(animeTitle)
+      ) {
+        score += 50;
+      }
+
+      const animeYear = extractYear(anime.startDate);
+      if (videoYear && animeYear) {
+        score += animeYear === videoYear ? 40 : -20;
+      }
+
+      if (videoEpisodeCount && anime.episodeCount) {
+        const diff = Math.abs(anime.episodeCount - videoEpisodeCount);
+        if (diff === 0) {
+          score += 30;
+        } else if (diff <= 2) {
+          score += 20;
+        } else if (anime.episodeCount < videoEpisodeCount) {
+          // 弹幕源集数少于视频，可能是分季拆开，仍强于集数多到离谱的源
+          score += 5;
+        }
+      }
+
+      return score;
+    };
+
+    let pool: DanmakuAnime[] = [];
+
     // 第一步：尝试同时匹配年份和标题
     if (videoYear) {
-      const exactMatches = animes.filter((anime) => {
+      pool = animes.filter((anime) => {
         const animeYear = extractYear(anime.startDate);
         const normalizedAnimeTitle = normalizeTitle(anime.animeTitle);
         return animeYear === videoYear && normalizedAnimeTitle === normalizedVideoTitle;
       });
 
-      if (exactMatches.length > 0) {
-        console.log(`[弹幕匹配] 找到 ${exactMatches.length} 个年份和标题完全匹配的源`);
-        return exactMatches;
+      if (pool.length > 0) {
+        console.log(`[弹幕匹配] 找到 ${pool.length} 个年份和标题完全匹配的源`);
       }
     }
 
     // 第二步：如果没有完全匹配，尝试只匹配标题
-    const titleMatches = animes.filter((anime) => {
-      const normalizedAnimeTitle = normalizeTitle(anime.animeTitle);
-      return normalizedAnimeTitle === normalizedVideoTitle;
-    });
+    if (pool.length === 0) {
+      pool = animes.filter((anime) => {
+        const normalizedAnimeTitle = normalizeTitle(anime.animeTitle);
+        return normalizedAnimeTitle === normalizedVideoTitle;
+      });
 
-    if (titleMatches.length > 0) {
-      console.log(`[弹幕匹配] 找到 ${titleMatches.length} 个标题完全匹配的源`);
-      return titleMatches;
+      if (pool.length > 0) {
+        console.log(`[弹幕匹配] 找到 ${pool.length} 个标题完全匹配的源`);
+      }
     }
 
     // 第三步：如果只匹配年份
-    if (videoYear) {
-      const yearMatches = animes.filter((anime) => {
+    if (pool.length === 0 && videoYear) {
+      pool = animes.filter((anime) => {
         const animeYear = extractYear(anime.startDate);
         return animeYear === videoYear;
       });
 
-      if (yearMatches.length > 0) {
-        console.log(`[弹幕匹配] 找到 ${yearMatches.length} 个年份匹配的源`);
-        return yearMatches;
+      if (pool.length > 0) {
+        console.log(`[弹幕匹配] 找到 ${pool.length} 个年份匹配的源`);
       }
     }
 
     // 如果都没有匹配，返回所有源
-    console.log('[弹幕匹配] 未找到精确匹配，返回所有源');
-    return animes;
+    if (pool.length === 0) {
+      console.log('[弹幕匹配] 未找到精确匹配，返回所有源');
+      pool = animes;
+    }
+
+    // 在候选池内按匹配度排序（同分保持接口原有顺序），取第一个即最可能的源
+    const sorted = [...pool].sort((a, b) => scoreOf(b) - scoreOf(a));
+
+    if (sorted.length > 1) {
+      console.log(
+        '[弹幕匹配] 按匹配度排序:',
+        sorted
+          .slice(0, 5)
+          .map(
+            (a) =>
+              `${a.animeTitle}(${extractYear(a.startDate) || '年份未知'}/${
+                a.episodeCount ?? '集数未知'
+              }集, ${scoreOf(a)}分)`
+          )
+          .join(' | ')
+      );
+    }
+
+    return sorted;
   };
 
   // 匹配弹幕集数：优先根据集数标题中的数字匹配，降级到索引匹配
@@ -6646,7 +6711,12 @@ function PlayPageClient() {
 
       // 应用智能过滤
       const videoYear = detailRef.current?.year;
-      const filteredAnimes = filterDanmakuSources(searchResult.animes, title, videoYear);
+      const filteredAnimes = filterDanmakuSources(
+        searchResult.animes,
+        title,
+        videoYear,
+        detailRef.current?.episodes_titles?.length
+      );
 
       if (filteredAnimes.length === 0) {
         return;
@@ -6889,7 +6959,8 @@ function PlayPageClient() {
         const filteredAnimes = filterDanmakuSources(
           searchResult.animes,
           title,
-          videoYear
+          videoYear,
+          detailRef.current?.episodes_titles?.length
         );
 
         // 如果有多个匹配结果，让用户选择
