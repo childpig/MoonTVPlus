@@ -38,6 +38,15 @@ export async function GET(request: NextRequest) {
     const episodeId = searchParams.get('episodeId');
     const url = searchParams.get('url');
 
+    // 抽样上限：单集弹幕动辄数万条（XML 可达数 MB），全量回传会让弱网/手机端
+    // 长时间停留在"加载中"。按 limit 等距抽样后再回传，时间轴分布保持不变。
+    const limitParam = searchParams.get('limit');
+    const parsedLimit = limitParam === null ? 0 : parseInt(limitParam, 10);
+    const limit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 20000)
+        : 0;
+
     // 至少需要一个参数
     if (!episodeId && !url) {
       return NextResponse.json(
@@ -87,10 +96,22 @@ export async function GET(request: NextRequest) {
       const xmlText = await response.text();
 
       // 解析 XML 为 JSON
-      const comments = parseXmlDanmaku(xmlText);
+      const allComments = parseXmlDanmaku(xmlText);
+
+      // 超过上限时等距抽样（保留首尾与时间分布），显著减小响应体积
+      let comments = allComments;
+      if (limit > 0 && allComments.length > limit) {
+        const step = allComments.length / limit;
+        const sampled: typeof allComments = [];
+        for (let i = 0; i < limit; i += 1) {
+          sampled.push(allComments[Math.floor(i * step)]);
+        }
+        comments = sampled;
+      }
 
       return NextResponse.json({
         count: comments.length,
+        total: allComments.length,
         comments,
       });
     } catch (fetchError) {
