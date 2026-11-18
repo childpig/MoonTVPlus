@@ -155,12 +155,34 @@ export async function getDanmakuById(
     danmakuCount?: number;
   }
 ): Promise<DanmakuComment[]> {
+  // 弹幕上限：默认 5000，与服务端抽样上限一致；
+  // 用户设为"不限"(0) 时给一个安全上限，避免再次拉取数万条卡住播放器
+  let limit = 5000;
+  try {
+    const storedLimit =
+      typeof window !== 'undefined'
+        ? parseInt(localStorage.getItem('danmakuMaxCount') || '5000', 10)
+        : 5000;
+    limit = Number.isFinite(storedLimit) && storedLimit > 0 ? storedLimit : 20000;
+  } catch (error) {
+    limit = 5000;
+  }
+
   try {
     // 1. 如果提供了 title 和 episodeIndex，先尝试从缓存读取
     if (title && episodeIndex !== undefined && !options?.bypassCache) {
       const cachedData = await getDanmakuFromCache(title, episodeIndex);
       if (cachedData) {
         console.log(`[弹幕缓存] 使用缓存: title=${title}, episodeIndex=${episodeIndex}, 数量=${cachedData.comments.length}`);
+        // 旧缓存可能存了数万条全量数据，按当前上限抽样后再交给播放器
+        if (cachedData.comments.length > limit) {
+          const step = cachedData.comments.length / limit;
+          const sampled: DanmakuComment[] = [];
+          for (let i = 0; i < limit; i += 1) {
+            sampled.push(cachedData.comments[Math.floor(i * step)]);
+          }
+          return sampled;
+        }
         return cachedData.comments;
       }
       console.log(`[弹幕缓存] 缓存未命中，从 API 获取: title=${title}, episodeIndex=${episodeIndex}`);
@@ -171,8 +193,19 @@ export async function getDanmakuById(
     }
 
     // 2. 缓存未命中，从 API 获取
-    const url = `/api/danmaku/comment?episodeId=${episodeId}`;
-    const response = await fetch(url);
+    // limit 交给服务端抽样，避免把数万条弹幕整体回传
+    const url = `/api/danmaku/comment?episodeId=${episodeId}&limit=${limit}`;
+
+    // 上游弹幕服务偶发长时间无响应，加超时避免界面一直停留在"加载中"
+    const response = await (async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      try {
+        return await fetch(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    })();
 
     if (!response.ok) {
       throw new Error('弹幕服务器连接异常，请检查你的设置');
