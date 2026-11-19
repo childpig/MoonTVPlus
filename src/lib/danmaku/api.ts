@@ -51,10 +51,58 @@ export {
   getDanmakuFromCache,
 };
 
+// —— 弹幕元数据短期缓存 ——
+// 播放器插件就绪重试、换集、重新加载弹幕都会重复请求同一个关键词/动漫，
+// 命中这里能省掉一次回源等待（每次 1~4 秒）
+const META_MEMO_TTL = 5 * 60 * 1000;
+const metaMemo = new Map<string, { at: number; value: unknown }>();
+
+function readMetaMemo<T>(key: string): T | null {
+  const hit = metaMemo.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > META_MEMO_TTL) {
+    metaMemo.delete(key);
+    return null;
+  }
+  return hit.value as T;
+}
+
+function writeMetaMemo(key: string, value: unknown): void {
+  if (metaMemo.size > 60) {
+    const oldest = [...metaMemo.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+    if (oldest) metaMemo.delete(oldest[0]);
+  }
+  metaMemo.set(key, { at: Date.now(), value });
+}
+
+// 单集弹幕默认回传上限：太大在弱网/手机端要等很久，2000 条对一集/一部电影已足够密
+export const DEFAULT_DANMAKU_MAX_COUNT = 2000;
+
+// 读取弹幕上限配置（localStorage.danmakuMaxCount）
+// 未设置 -> 默认值；设成 0（不限）-> 用安全上限兜底，避免一次拉数万条卡住播放器
+export function getDanmakuMaxCount(): number {
+  if (typeof window === 'undefined') return DEFAULT_DANMAKU_MAX_COUNT;
+  try {
+    const raw = localStorage.getItem('danmakuMaxCount');
+    if (raw === null) return DEFAULT_DANMAKU_MAX_COUNT;
+    const parsed = parseInt(raw, 10);
+    if (!Number.isFinite(parsed)) return DEFAULT_DANMAKU_MAX_COUNT;
+    return parsed > 0 ? parsed : 20000;
+  } catch (error) {
+    return DEFAULT_DANMAKU_MAX_COUNT;
+  }
+}
+
 // 搜索动漫
 export async function searchAnime(
   keyword: string
 ): Promise<DanmakuSearchResponse> {
+  const memoKey = 'search:' + keyword;
+  const memo = readMetaMemo<DanmakuSearchResponse>(memoKey);
+  if (memo) {
+    console.log(`[弹幕缓存] 命中搜索结果: ${keyword}`);
+    return memo;
+  }
   try {
     const url = `/api/danmaku/search?keyword=${encodeURIComponent(keyword)}`;
     const response = await fetch(url);
@@ -64,6 +112,9 @@ export async function searchAnime(
     }
 
     const data = (await response.json()) as DanmakuSearchResponse;
+    if (data.success && data.animes.length > 0) {
+      writeMetaMemo(memoKey, data);
+    }
     return data;
   } catch (error) {
     console.error('搜索动漫失败:', error);
@@ -114,6 +165,12 @@ export async function matchAnime(
 export async function getEpisodes(
   animeId: number
 ): Promise<DanmakuEpisodesResponse> {
+  const memoKey = 'episodes:' + animeId;
+  const memo = readMetaMemo<DanmakuEpisodesResponse>(memoKey);
+  if (memo) {
+    console.log(`[弹幕缓存] 命中剧集列表: animeId=${animeId}`);
+    return memo;
+  }
   try {
     const url = `/api/danmaku/episodes?animeId=${animeId}`;
     const response = await fetch(url);
@@ -123,6 +180,9 @@ export async function getEpisodes(
     }
 
     const data = (await response.json()) as DanmakuEpisodesResponse;
+    if (data.success && data.bangumi.episodes.length > 0) {
+      writeMetaMemo(memoKey, data);
+    }
     return data;
   } catch (error) {
     console.error('获取剧集列表失败:', error);
@@ -155,18 +215,8 @@ export async function getDanmakuById(
     danmakuCount?: number;
   }
 ): Promise<DanmakuComment[]> {
-  // 弹幕上限：默认 5000，与服务端抽样上限一致；
-  // 用户设为"不限"(0) 时给一个安全上限，避免再次拉取数万条卡住播放器
-  let limit = 5000;
-  try {
-    const storedLimit =
-      typeof window !== 'undefined'
-        ? parseInt(localStorage.getItem('danmakuMaxCount') || '5000', 10)
-        : 5000;
-    limit = Number.isFinite(storedLimit) && storedLimit > 0 ? storedLimit : 20000;
-  } catch (error) {
-    limit = 5000;
-  }
+  // 弹幕上限：默认 2000（与服务端抽样上限一致），弱网下不用等太久
+  const limit = getDanmakuMaxCount();
 
   try {
     // 1. 如果提供了 title 和 episodeIndex，先尝试从缓存读取
