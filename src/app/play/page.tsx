@@ -1450,15 +1450,15 @@ function PlayPageClient() {
 
                   console.log('使用记忆的弹幕源成功:', selection);
 
-                  saveDanmakuAutoSelection(title, episodeIndex, {
-                    animeId: selection.animeId,
-                    episodeId: selection.episodeId,
-                    animeTitle: selection.animeTitle,
-                    episodeTitle: selection.episodeTitle,
-                  });
-
                   // 通过统一的 handleDanmakuSelect 处理弹幕加载
-                  await handleDanmakuSelect(selection);
+                  if (await handleDanmakuSelect(selection)) {
+                    saveDanmakuAutoSelection(title, episodeIndex, {
+                      animeId: selection.animeId,
+                      episodeId: selection.episodeId,
+                      animeTitle: selection.animeTitle,
+                      episodeTitle: selection.episodeTitle,
+                    });
+                  }
                   setDanmakuLoading(false);
                   return 'done';
                 }
@@ -1521,13 +1521,14 @@ function PlayPageClient() {
               artPlayerRef.current.notice.show = `已自动选择弹幕源：${autoSelection.animeTitle}`;
             }
             // 记住匹配结果，下次播放同一集直接命中，不再重复搜索
-            saveDanmakuAutoSelection(title, episodeIndex, {
-              animeId: autoSelection.animeId,
-              episodeId: autoSelection.episodeId,
-              animeTitle: autoSelection.animeTitle,
-              episodeTitle: autoSelection.episodeTitle,
-            });
-            await handleDanmakuSelect(autoSelection);
+            if (await handleDanmakuSelect(autoSelection)) {
+              saveDanmakuAutoSelection(title, episodeIndex, {
+                animeId: autoSelection.animeId,
+                episodeId: autoSelection.episodeId,
+                animeTitle: autoSelection.animeTitle,
+                episodeTitle: autoSelection.episodeTitle,
+              });
+            }
           } else {
             console.warn('未找到剧集信息');
             if (artPlayerRef.current) {
@@ -6899,7 +6900,10 @@ function PlayPageClient() {
   };
 
   // 处理弹幕选择
-  const handleDanmakuSelect = async (selection: DanmakuSelection, isManual = false) => {
+  const handleDanmakuSelect = async (
+    selection: DanmakuSelection,
+    isManual = false
+  ): Promise<boolean> => {
     console.log(`[弹幕选择] isManual=${isManual}, selection:`, selection);
     setCurrentDanmakuSelection(selection);
 
@@ -6922,7 +6926,7 @@ function PlayPageClient() {
     }
 
     // 加载弹幕，传递元信息
-    await loadDanmaku(selection.episodeId, {
+    return loadDanmaku(selection.episodeId, {
       animeId: selection.animeId,
       animeTitle: selection.animeTitle,
       episodeTitle: selection.episodeTitle,
