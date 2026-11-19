@@ -33,6 +33,8 @@ import {
   getDanmakuAnimeId,
   getDanmakuSearchKeyword,
   getDanmakuSourceIndex,
+  getDanmakuAutoSelection,
+  saveDanmakuAutoSelection,
   getManualDanmakuSelection,
   saveDanmakuAnimeId,
   saveDanmakuSearchKeyword,
@@ -1233,7 +1235,7 @@ function PlayPageClient() {
           }
 
           // 应用弹幕数量限制
-          const maxCount = typeof window !== 'undefined' ? parseInt(localStorage.getItem('danmakuMaxCount') || '5000', 10) : 0;
+          const maxCount = typeof window !== 'undefined' ? parseInt(localStorage.getItem('danmakuMaxCount') || '2000', 10) : 0;
           let calculatedOriginalCount = 0;
           if (maxCount > 0 && danmakuData.length > maxCount) {
             const originalCount = danmakuData.length;
@@ -1304,6 +1306,29 @@ function PlayPageClient() {
       // 没有缓存，先检查是否有手动选择的剧集 ID
       console.log(`[弹幕] 第 ${episodeIndex + 1} 集缓存未命中`);
 
+      // 上次自动匹配到的剧集：直接按 episodeId 取弹幕，
+      // 省掉"搜索关键词 + 拉剧集列表"两次回源（每次 1~4 秒）
+      const rememberedAuto = getDanmakuAutoSelection(title, episodeIndex);
+      if (rememberedAuto) {
+        console.log(
+          `[弹幕记忆] 命中自动匹配记录: episodeId=${rememberedAuto.episodeId}`
+        );
+        if (!danmakuPluginRef.current) {
+          console.log('[弹幕] 弹幕插件未初始化，等待插件就绪后重新加载');
+          return 'retry';
+        }
+        const loaded = await loadDanmaku(rememberedAuto.episodeId, {
+          animeId: rememberedAuto.animeId,
+          animeTitle: rememberedAuto.animeTitle,
+          episodeTitle: rememberedAuto.episodeTitle,
+        });
+        if (loaded) {
+          console.log('[弹幕记忆] 使用自动匹配记录加载成功');
+          return 'done';
+        }
+        console.log('[弹幕记忆] 自动匹配记录无可用弹幕，降级到自动搜索');
+      }
+
       // 检查是否有手动选择的剧集 ID
       const manualEpisodeId = getManualDanmakuSelection(title, episodeIndex);
       if (manualEpisodeId) {
@@ -1316,9 +1341,12 @@ function PlayPageClient() {
           // 需要获取完整的 selection 信息来调用 handleDanmakuSelect
           // 但这里只有 episodeId，所以保持直接调用 loadDanmaku
           setDanmakuLoading(true);
-          await loadDanmaku(manualEpisodeId);
-          console.log('[弹幕记忆] 使用手动选择的弹幕成功');
-          return 'done'; // 使用手动选择成功，直接返回
+          const manualLoaded = await loadDanmaku(manualEpisodeId);
+          if (manualLoaded) {
+            console.log('[弹幕记忆] 使用手动选择的弹幕成功');
+            return 'done'; // 使用手动选择成功，直接返回
+          }
+          console.warn('[弹幕记忆] 手动选择的弹幕无数据，继续自动搜索');
         } catch (error) {
           console.error('[弹幕记忆] 使用手动选择的弹幕失败:', error);
           // 继续执行自动搜索
@@ -1422,6 +1450,13 @@ function PlayPageClient() {
 
                   console.log('使用记忆的弹幕源成功:', selection);
 
+                  saveDanmakuAutoSelection(title, episodeIndex, {
+                    animeId: selection.animeId,
+                    episodeId: selection.episodeId,
+                    animeTitle: selection.animeTitle,
+                    episodeTitle: selection.episodeTitle,
+                  });
+
                   // 通过统一的 handleDanmakuSelect 处理弹幕加载
                   await handleDanmakuSelect(selection);
                   setDanmakuLoading(false);
@@ -1485,6 +1520,13 @@ function PlayPageClient() {
             if (filteredAnimes.length > 1 && artPlayerRef.current) {
               artPlayerRef.current.notice.show = `已自动选择弹幕源：${autoSelection.animeTitle}`;
             }
+            // 记住匹配结果，下次播放同一集直接命中，不再重复搜索
+            saveDanmakuAutoSelection(title, episodeIndex, {
+              animeId: autoSelection.animeId,
+              episodeId: autoSelection.episodeId,
+              animeTitle: autoSelection.animeTitle,
+              episodeTitle: autoSelection.episodeTitle,
+            });
             await handleDanmakuSelect(autoSelection);
           } else {
             console.warn('未找到剧集信息');
@@ -6470,7 +6512,7 @@ function PlayPageClient() {
     return danmakuEpisodes[index];
   };
 
-  // 加载弹幕到播放器
+  // 加载弹幕到播放器（返回是否真的加载成功，供上层决定是否降级到自动搜索）
   const loadDanmaku = async (episodeId: number, metadata?: {
     animeId?: number;
     animeTitle?: string;
@@ -6478,16 +6520,16 @@ function PlayPageClient() {
     searchKeyword?: string;
     danmakuCount?: number;
     bypassCache?: boolean;
-  }) => {
+  }): Promise<boolean> => {
     if (!danmakuPluginRef.current) {
       console.warn('弹幕插件未初始化');
-      return;
+      return false;
     }
 
     // 防止重复加载同一个 episodeId
     if (loadingDanmakuEpisodeIdRef.current === episodeId) {
       console.log(`[弹幕加载] 跳过重复加载: episodeId=${episodeId}`);
-      return;
+      return true;
     }
 
     loadingDanmakuEpisodeIdRef.current = episodeId;
@@ -6524,7 +6566,7 @@ function PlayPageClient() {
         console.warn('未获取到弹幕数据');
         setDanmakuLoading(false);
         loadingDanmakuEpisodeIdRef.current = null;
-        return;
+        return false;
       }
 
       // 转换弹幕格式
@@ -6564,7 +6606,7 @@ function PlayPageClient() {
       }
 
       // 应用弹幕数量限制
-      const maxCount = typeof window !== 'undefined' ? parseInt(localStorage.getItem('danmakuMaxCount') || '5000', 10) : 0;
+      const maxCount = typeof window !== 'undefined' ? parseInt(localStorage.getItem('danmakuMaxCount') || '2000', 10) : 0;
       let calculatedOriginalCount = 0;
       if (maxCount > 0 && danmakuData.length > maxCount) {
         const originalCount = danmakuData.length;
@@ -6624,9 +6666,11 @@ function PlayPageClient() {
 
       // 延迟一下让用户看到弹幕数量
       await new Promise((resolve) => setTimeout(resolve, 1500));
+      return true;
     } catch (error) {
       console.error('加载弹幕失败:', error);
       setDanmakuCount(0);
+      return false;
     } finally {
       setDanmakuLoading(false);
       loadingDanmakuEpisodeIdRef.current = null;
@@ -6794,7 +6838,7 @@ function PlayPageClient() {
       }
 
       // 应用弹幕数量限制
-      const maxCount = typeof window !== 'undefined' ? parseInt(localStorage.getItem('danmakuMaxCount') || '5000', 10) : 0;
+      const maxCount = typeof window !== 'undefined' ? parseInt(localStorage.getItem('danmakuMaxCount') || '2000', 10) : 0;
       if (maxCount > 0 && danmakuData.length > maxCount) {
         const originalCount = danmakuData.length;
         const step = danmakuData.length / maxCount;
