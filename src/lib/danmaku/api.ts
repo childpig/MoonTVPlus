@@ -69,8 +69,16 @@ function readMetaMemo<T>(key: string): T | null {
 
 function writeMetaMemo(key: string, value: unknown): void {
   if (metaMemo.size > 60) {
-    const oldest = [...metaMemo.entries()].sort((a, b) => a[1].at - b[1].at)[0];
-    if (oldest) metaMemo.delete(oldest[0]);
+    // 不用展开 Map 迭代器（tsconfig 的 target 不支持 downlevelIteration）
+    let oldestKey: string | null = null;
+    let oldestAt = Infinity;
+    metaMemo.forEach((entry, entryKey) => {
+      if (entry.at < oldestAt) {
+        oldestAt = entry.at;
+        oldestKey = entryKey;
+      }
+    });
+    if (oldestKey) metaMemo.delete(oldestKey);
   }
   metaMemo.set(key, { at: Date.now(), value });
 }
