@@ -10719,6 +10719,20 @@ const ThemeConfigComponent = ({
           <p className='mt-4 text-sm text-gray-600 dark:text-gray-400'>
             注意：启用内置主题时，自定义CSS将被禁用
           </p>
+          {/* 就地保存按钮：主题选择后无需滚到页面底部 */}
+          <div className='mt-5 flex justify-end'>
+            <button
+              onClick={handleSave}
+              disabled={isLoading('saveThemeConfig')}
+              className={
+                isLoading('saveThemeConfig')
+                  ? buttonStyles.disabled
+                  : buttonStyles.success
+              }
+            >
+              {isLoading('saveThemeConfig') ? '保存中...' : '保存主题设置'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -10742,6 +10756,20 @@ const ThemeConfigComponent = ({
           <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>
             提示：可以使用CSS变量、媒体查询等高级特性
           </p>
+          {/* 就地保存按钮：主题选择后无需滚到页面底部 */}
+          <div className='mt-5 flex justify-end'>
+            <button
+              onClick={handleSave}
+              disabled={isLoading('saveThemeConfig')}
+              className={
+                isLoading('saveThemeConfig')
+                  ? buttonStyles.disabled
+                  : buttonStyles.success
+              }
+            >
+              {isLoading('saveThemeConfig') ? '保存中...' : '保存主题设置'}
+            </button>
+          </div>
         </div>
       )}
 
