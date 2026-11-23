@@ -83,8 +83,8 @@ function writeMetaMemo(key: string, value: unknown): void {
   metaMemo.set(key, { at: Date.now(), value });
 }
 
-// 单集弹幕默认回传上限：太大在弱网/手机端要等很久，2000 条对一集/一部电影已足够密
-export const DEFAULT_DANMAKU_MAX_COUNT = 2000;
+// 单集弹幕默认回传上限
+export const DEFAULT_DANMAKU_MAX_COUNT = 5000;
 
 // 读取弹幕上限配置（localStorage.danmakuMaxCount）
 // 未设置 -> 默认值；设成 0（不限）-> 用安全上限兜底，避免一次拉数万条卡住播放器
