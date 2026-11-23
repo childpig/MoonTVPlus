@@ -10582,11 +10582,6 @@ const ThemeConfigComponent = ({
       color: '#3b82f6',
     },
     {
-      value: 'cinema_amber',
-      label: '影院暖橙',
-      color: '#d97706',
-    },
-    {
       value: 'dark_blue',
       label: '深蓝夜空',
       color: '#3b82f6',
