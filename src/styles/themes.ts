@@ -57,7 +57,7 @@ html:not(.dark) [class*="from-gray-100"] { --tw-gradient-from: #f0d8b4 !importan
 
 /* logo：影院拍板 + 暖白字 */
 a[href="/"][class*="text-2xl"] { color: #fff4e7 !important; }
-a[href="/"][class*="text-2xl"]::before { content: "\1F3AC "; }
+a[href="/"][class*="text-2xl"]::before { content: "\1F3AC\fe0f "; }
 
 [class*="text-green-500"],
 [class*="text-blue-500"],
@@ -77,8 +77,8 @@ a[href="/"][class*="text-2xl"]::before { content: "\1F3AC "; }
 }
 
 /* 主色按钮 */
-[class*="bg-blue-600"]:not([class*="hover:"]):not(body),
-[class*="bg-green-600"]:not([class*="hover:"]):not(body) {
+[class~="bg-blue-600"]:not(body),
+[class~="bg-green-600"]:not(body) {
   background: var(--theme-primary) !important;
 }
 
