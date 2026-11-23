@@ -56,8 +56,8 @@ html:not(.dark) [class*="from-gray-100"] { --tw-gradient-from: #f0d8b4 !importan
 }
 
 /* logo：影院拍板 + 暖白字 */
-a[href="/"] > span[class*="text-2xl"] { color: #fff4e7 !important; }
-a[href="/"] > span[class*="text-2xl"]::before { content: "\1F3AC "; }
+a[href="/"][class*="text-2xl"] { color: #fff4e7 !important; }
+a[href="/"][class*="text-2xl"]::before { content: "\1F3AC "; }
 
 [class*="text-green-500"],
 [class*="text-blue-500"],
@@ -88,6 +88,7 @@ a[href="/"] > span[class*="text-2xl"]::before { content: "\1F3AC "; }
 :root:not(.dark) [class*="bg-gray-100"]:not(body) {
   background: rgba(255, 250, 242, 0.86) !important;
 }
+.dark [class*="bg-gray-700"]:not(body),
 .dark [class*="bg-gray-800"]:not(body),
 .dark [class*="bg-gray-900"]:not(body),
 .dark [class*="bg-white"]:not(body):not([class*="bg-white/40"]) {
