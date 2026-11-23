@@ -15,43 +15,40 @@ export const builtInThemes = {
 :root:not(.dark) {
   --theme-primary: #c2410c;
   --theme-primary-hover: #9a3412;
-  --theme-bg: #f5e6d3;
-  --theme-bg-secondary: #fff8ee;
   --theme-text: #3b2412;
   --theme-text-secondary: #8a5a2b;
   --theme-border: #e3c49b;
 }
-
-:root:not(.dark) body {
+html:not(.dark) body {
   background: linear-gradient(180deg, #f6ead9 0%, #f0d8b4 45%, #e6bd83 100%) !important;
   background-attachment: fixed !important;
-  color: var(--theme-text) !important;
+  color: #3b2412 !important;
 }
 
 .dark {
   --theme-primary: #f59e0b;
   --theme-primary-hover: #d97706;
-  --theme-bg: #2a160d;
-  --theme-bg-secondary: #3a2013;
   --theme-text: #fdf4e7;
   --theme-text-secondary: #dfb98a;
   --theme-border: #6e3d18;
 }
-
 html.dark body {
-  background: linear-gradient(180deg, #17100b 0%, #2f1a10 24%, #5d2f12 52%, #914d18 78%, #b46e1d 100%) !important;
+  background: linear-gradient(180deg, #17100b 0%, #2f1a10 18%, #5d2f12 42%, #914d18 70%, #b46e1d 100%) !important;
   background-attachment: fixed !important;
-  color: var(--theme-text) !important;
+  color: #fdf4e7 !important;
 }
 
-/* 侧边栏 / 毛玻璃面板 */
-:root:not(.dark) [class*="bg-white/40"] {
+/* 轮播未加载时的占位渐变：跟随暖棕，不再露出深蓝灰 */
+html:not(.dark) [class*="from-gray-100"] { --tw-gradient-from: #f0d8b4 !important; --tw-gradient-to: #e6bd83 !important; }
+.dark [class*="from-gray-800"] { --tw-gradient-from: #2f1a10 !important; --tw-gradient-to: #5d2f12 !important; }
+
+/* 侧边栏 / 毛玻璃面板（排除 body：body 自带 bg-white/dark:bg-gray-900 类） */
+:root:not(.dark) [class*="bg-white/40"]:not(body) {
   background: rgba(255, 248, 238, 0.78) !important;
   border-color: rgba(160, 100, 40, 0.22) !important;
 }
-
-.dark [class*="bg-white/40"],
-.dark [class*="bg-gray-900/70"] {
+.dark [class*="bg-white/40"]:not(body),
+.dark [class*="bg-gray-900/70"]:not(body) {
   background: rgba(26, 15, 9, 0.74) !important;
   backdrop-filter: blur(18px) !important;
   -webkit-backdrop-filter: blur(18px) !important;
@@ -59,13 +56,8 @@ html.dark body {
 }
 
 /* logo：影院拍板 + 暖白字 */
-a[href="/"] > span[class*="text-2xl"] {
-  color: #fff4e7 !important;
-}
-
-a[href="/"] > span[class*="text-2xl"]::before {
-  content: "\1F3AC ";
-}
+a[href="/"] > span[class*="text-2xl"] { color: #fff4e7 !important; }
+a[href="/"] > span[class*="text-2xl"]::before { content: "\1F3AC "; }
 
 [class*="text-green-500"],
 [class*="text-blue-500"],
@@ -74,67 +66,57 @@ a[href="/"] > span[class*="text-2xl"]::before {
   color: var(--theme-primary) !important;
 }
 
-/* 侧栏导航：半透明深色胶囊 + 暖白字（仅激活项暖橙） */
+/* 侧栏导航：仅激活项暖橙 */
 .dark a[data-active="true"],
 .dark [class*="data-[active=true]"] {
   background: rgba(217, 119, 6, 0.26) !important;
 }
-
-.dark a[data-active="true"] * ,
+.dark a[data-active="true"] *,
 .dark [class*="data-[active=true]:text"] {
   color: #ffedd5 !important;
 }
 
 /* 主色按钮 */
-[class*="bg-blue-600"]:not([class*="hover:"]),
-[class*="bg-green-600"]:not([class*="hover:"]) {
+[class*="bg-blue-600"]:not([class*="hover:"]):not(body),
+[class*="bg-green-600"]:not([class*="hover:"]):not(body) {
   background: var(--theme-primary) !important;
 }
 
-[class*="border-blue-500"],
-[class*="ring-blue-200"],
-[class*="ring-blue-500"] {
-  --tw-ring-color: rgba(245, 158, 11, 0.55) !important;
-  border-color: var(--theme-primary) !important;
-}
-
-/* 内容卡片 / 面板背景：暖棕半透明 */
-:root:not(.dark) [class*="bg-white"]:not([class*="bg-white/40"]),
-:root:not(.dark) [class*="bg-gray-50"],
-:root:not(.dark) [class*="bg-gray-100"] {
+/* 内容卡片 / 面板：暖棕半透明（排除 body） */
+:root:not(.dark) [class*="bg-white"]:not(body):not([class*="bg-white/40"]),
+:root:not(.dark) [class*="bg-gray-50"]:not(body),
+:root:not(.dark) [class*="bg-gray-100"]:not(body) {
   background: rgba(255, 250, 242, 0.86) !important;
 }
-
-.dark [class*="bg-gray-800"],
-.dark [class*="bg-gray-900"],
-.dark [class*="bg-white"]:not([class*="bg-white/40"]) {
+.dark [class*="bg-gray-800"]:not(body),
+.dark [class*="bg-gray-900"]:not(body),
+.dark [class*="bg-white"]:not(body):not([class*="bg-white/40"]) {
   background: rgba(43, 25, 15, 0.8) !important;
   color: var(--theme-text) !important;
   border-color: rgba(190, 116, 40, 0.24) !important;
 }
 
 /* 文字 */
-:root:not(.dark) [class*="text-gray-"],
-.dark [class*="text-gray-"] {
+:root:not(.dark) [class*="text-gray-"]:not(body),
+.dark [class*="text-gray-"]:not(body) {
   color: var(--theme-text-secondary) !important;
 }
-
-:root:not(.dark) [class*="text-gray-900"],
-.dark [class*="text-gray-100"],
-.dark [class*="text-gray-200"] {
+:root:not(.dark) [class*="text-gray-900"]:not(body),
+.dark [class*="text-gray-100"]:not(body),
+.dark [class*="text-gray-200"]:not(body) {
   color: var(--theme-text) !important;
 }
 
 /* 边框 */
-[class*="border-gray-200"],
-[class*="border-gray-300"],
-[class*="border-gray-600"],
-[class*="border-gray-700"] {
+[class*="border-gray-200"]:not(body),
+[class*="border-gray-300"]:not(body),
+[class*="border-gray-600"]:not(body),
+[class*="border-gray-700"]:not(body) {
   border-color: var(--theme-border) !important;
 }
 
-/* 轮播主按钮：白色胶囊，和截图一致 */
-[class*="bg-gray-500/30"] {
+/* 轮播主按钮：白色胶囊 */
+[class*="bg-gray-500/30"]:not(body) {
   background: #fff !important;
   color: #35200f !important;
   border-radius: 9999px !important;
@@ -142,28 +124,18 @@ a[href="/"] > span[class*="text-2xl"]::before {
   padding-right: 1.75rem !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
 }
+[class*="bg-gray-500/30"] svg { fill: #35200f !important; }
 
-[class*="bg-gray-500/30"] svg {
-  fill: #35200f !important;
-}
-
-/* 轮播评分角标：暖橙底 */
-[class*="bg-yellow-500"] {
-  background: var(--theme-primary) !important;
-  color: #fff !important;
-}
+/* 评分角标 */
+[class*="bg-yellow-500"]:not(body) { background: var(--theme-primary) !important; color: #fff !important; }
 
 /* 顶部进度条 */
-#nprogress .bar,
-.dark #nprogress .bar {
+#nprogress .bar, .dark #nprogress .bar {
   background: #f59e0b !important;
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.85), 0 0 5px rgba(245, 158, 11, 0.6) !important;
 }
 
-/* 卡片圆角更柔和 */
-[class*="rounded-lg"] {
-  border-radius: 0.75rem !important;
-}
+[class*="rounded-lg"]:not(body) { border-radius: 0.75rem !important; }
 `,
   },
   dark_blue: {
