@@ -148,6 +148,9 @@ export default async function RootLayout({
   // 入口开关是本机 cookie，与存储模式无关，所以 localstorage 模式也要注入；
   // getConfig() 有模块级缓存，generateMetadata 里已经调过一次，这里不产生额外读取。
   const specialSourceApis = (await getConfig()).SpecialSourceApis || [];
+  // 主题CSS加版本号破缓存：保存主题后 cacheVersion 递增，link URL 随之变化，
+  // 避免浏览器在 max-age 内一直用旧 CSS 导致“保存不生效”
+  const themeCssVersion = (await getConfig()).ThemeConfig?.cacheVersion || 0;
   let userFeatureAccess =
     storageType === 'localstorage'
       ? await getUserFeatureAccess(process.env.USERNAME || 'localstorage-owner')
@@ -391,7 +394,7 @@ export default async function RootLayout({
         />
         <link rel='apple-touch-icon' href='/icons/icon-192x192.png' />
         {/* 主题CSS */}
-        <link rel='stylesheet' href='/api/theme/css' />
+        <link rel='stylesheet' href={`/api/theme/css?v=${themeCssVersion}`} />
         {/* 将配置序列化后直接写入脚本，浏览器端可通过 window.RUNTIME_CONFIG 获取 */}
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script
