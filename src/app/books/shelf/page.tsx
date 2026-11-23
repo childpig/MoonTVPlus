@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 import { deleteBookShelf, getAllBookShelf } from '@/lib/book.db.client';
-import { bookCoverSrc } from '@/lib/book-cover';
 import { BookShelfItem } from '@/lib/book.types';
 import {
   buildBookDetailPath,
@@ -83,13 +82,7 @@ export default function BookShelfPage() {
                 onNavigate={() => void cacheBookShelfItem(item)}
                 onPress={openDetail}
                 title={item.title}
-                poster={
-                  item.cover
-                    ? processImageUrl(
-                        bookCoverSrc(item.sourceId, item.cover) || item.cover
-                      )
-                    : undefined
-                }
+                poster={item.cover ? processImageUrl(item.cover) : undefined}
                 sourceName={item.sourceName}
                 actions={[
                   {

@@ -19,7 +19,6 @@ import {
   getAllBookShelf,
   getCachedBookReadRecordsSnapshot,
 } from '@/lib/book.db.client';
-import { bookCoverSrc } from '@/lib/book-cover';
 import { BookReadRecord, BookShelfItem } from '@/lib/book.types';
 import {
   type CachedBookFile,
@@ -241,7 +240,7 @@ export default function BookHistoryPage() {
                 item={{
                   key: item.storageKey,
                   title: item.title,
-                  image: bookCoverSrc(item.sourceId, item.cover),
+                  image: item.cover,
                   meta: item.sourceName,
                   subtitle: [
                     item.author,
@@ -257,13 +256,7 @@ export default function BookHistoryPage() {
                 onNavigate={() => rememberOpen(item)}
                 onPress={openReader}
                 title={item.title}
-                poster={
-                  item.cover
-                    ? processImageUrl(
-                        bookCoverSrc(item.sourceId, item.cover) || item.cover
-                      )
-                    : undefined
-                }
+                poster={item.cover ? processImageUrl(item.cover) : undefined}
                 sourceName={item.sourceName}
                 actions={[
                   {

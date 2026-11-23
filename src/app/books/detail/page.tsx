@@ -10,7 +10,6 @@ import {
   getAllBookShelf,
   saveBookShelf,
 } from '@/lib/book.db.client';
-import { bookCoverSrc } from '@/lib/book-cover';
 import { BookChapter, BookDetail, BookShelfItem } from '@/lib/book.types';
 import {
   buildBookReadPath,
@@ -292,7 +291,7 @@ export default function BookDetailPage() {
           {detail.cover ? (
             <>
               <ProxyImage
-                originalSrc={bookCoverSrc(detail.sourceId, detail.cover) || detail.cover}
+                originalSrc={detail.cover}
                 alt={detail.title}
                 className='h-full w-full object-cover'
               />
