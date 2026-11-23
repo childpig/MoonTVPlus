@@ -58,29 +58,37 @@ html.dark body {
   border-color: rgba(190, 116, 40, 0.3) !important;
 }
 
-/* logo：影院拍板 + 暖橙字 */
+/* logo：影院拍板 + 暖白字 */
+a[href="/"] > span[class*="text-2xl"] {
+  color: #fff4e7 !important;
+}
+
 a[href="/"] > span[class*="text-2xl"]::before {
   content: "\1F3AC ";
 }
 
-[class*="text-green-600"],
+[class*="text-green-500"],
 [class*="text-blue-500"],
+[class*="text-green-600"],
 [class*="text-blue-600"] {
   color: var(--theme-primary) !important;
 }
 
-/* 导航激活态 / 主色按钮 */
-[class*="bg-green-500/20"],
-[class*="bg-blue-600"],
-[class*="bg-green-600"],
-[class*="hover:bg-blue-700"],
-[class*="hover:bg-green-700"] {
-  background: var(--theme-primary) !important;
+/* 侧栏导航：半透明深色胶囊 + 暖白字（仅激活项暖橙） */
+.dark a[data-active="true"],
+.dark [class*="data-[active=true]"] {
+  background: rgba(217, 119, 6, 0.26) !important;
 }
 
-[class*="data-[active=true]:text-green-700"],
-[class*="data-[active=true]:text-blue-700"] {
-  color: var(--theme-primary) !important;
+.dark a[data-active="true"] * ,
+.dark [class*="data-[active=true]:text"] {
+  color: #ffedd5 !important;
+}
+
+/* 主色按钮 */
+[class*="bg-blue-600"]:not([class*="hover:"]),
+[class*="bg-green-600"]:not([class*="hover:"]) {
+  background: var(--theme-primary) !important;
 }
 
 [class*="border-blue-500"],
