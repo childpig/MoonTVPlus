@@ -32,6 +32,7 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 import { parseCustomTimeFormat } from '@/lib/time';
+import { TVBOX_LIVE_RELAY_PATH } from '@/lib/tvbox-live.shared';
 import { useLiveSync } from '@/hooks/useLiveSync';
 
 import EpgScrollableRow from '@/components/EpgScrollableRow';
@@ -413,6 +414,7 @@ function LivePageClient() {
   // 获取 logo URL（始终使用代理）
   const getLogoUrl = (logoUrl: string, sourceKey: string) => {
     if (!logoUrl) return '';
+    if (logoUrl.startsWith(`${TVBOX_LIVE_RELAY_PATH}?`)) return logoUrl;
     return `/api/proxy/logo?url=${encodeURIComponent(logoUrl)}&source=${sourceKey}`;
   };
 
@@ -1463,6 +1465,7 @@ function LivePageClient() {
   };
 
   const getClientTestUrl = (rawUrl: string, source?: LiveSource | null) => {
+    if (rawUrl.startsWith(`${TVBOX_LIVE_RELAY_PATH}?`)) return rawUrl;
     const proxyMode = getEffectiveProxyMode(rawUrl, source?.proxyMode);
     const lower = rawUrl.toLowerCase();
     const path = lower.split('?')[0];
@@ -2150,7 +2153,7 @@ function LivePageClient() {
       );
 
       // 直连模式：跳过服务器预检查，直接使用 m3u8
-      if (proxyMode === 'direct') {
+      if (proxyMode === 'direct' && !videoUrl.startsWith(`${TVBOX_LIVE_RELAY_PATH}?`)) {
         type = 'm3u8';
       } else {
         // 全量代理或仅代理m3u8：通过服务器预检查
@@ -2192,7 +2195,7 @@ function LivePageClient() {
       // 根据代理模式决定 URL
       let targetUrl = videoUrl;
       if (type === 'm3u8') {
-        if (proxyMode === 'direct') {
+        if (proxyMode === 'direct' || videoUrl.startsWith(`${TVBOX_LIVE_RELAY_PATH}?`)) {
           // 直连模式：直接使用原始 URL
           targetUrl = videoUrl;
         } else {
