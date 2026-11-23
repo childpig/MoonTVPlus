@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Blend, Cat, Clover, Container, Film, Globe, Home, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
+import { Blend, BookOpen, Cat, Clover, Container, Film, Globe, Home, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -87,6 +87,15 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
         label: '综艺',
         href: '/douban?type=show',
       },
+      ...(runtimeConfig?.BOOKS_ENABLED
+        ? [
+            {
+              icon: BookOpen,
+              label: '电子书馆',
+              href: '/books',
+            },
+          ]
+        : []),
       ...(runtimeConfig?.LIVE_ENABLED
         ? [
             {
@@ -154,10 +163,15 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     const decodedActive = decodeURIComponent(currentActive);
     const decodedItemHref = decodeURIComponent(href);
 
+    const activePathname = decodedActive.split('?')[0];
+    const itemPathname = decodedItemHref.split('?')[0];
+
     return (
       decodedActive === decodedItemHref ||
       (decodedActive.startsWith('/douban') &&
-        decodedActive.includes(`type=${typeMatch}`))
+        decodedActive.includes(`type=${typeMatch}`)) ||
+      (!typeMatch &&
+        activePathname.startsWith(`${itemPathname}/`))
     );
   };
 
@@ -178,7 +192,10 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
             <li
               key={item.href}
               className='flex-shrink-0'
-              style={{ width: '20vw', minWidth: '20vw' }}
+              style={{
+                width: `calc(100% / ${Math.min(navItems.length, 6)})`,
+                minWidth: '56px',
+              }}
             >
               <Link
                 href={item.href}
@@ -192,11 +209,11 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
                     }`}
                 />
                 <span
-                  className={
+                  className={`whitespace-nowrap ${
                     active
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-gray-600 dark:text-gray-300'
-                  }
+                  }`}
                 >
                   {item.label}
                 </span>
