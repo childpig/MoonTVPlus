@@ -6,6 +6,158 @@ export const builtInThemes = {
     color: '#3b82f6',
     css: '',
   },
+  cinema_amber: {
+    name: '影院暖橙',
+    description: '深棕到琥珀的影院氛围，暖色高亮',
+    color: '#d97706',
+    css: `
+/* ========== 影院暖橙 Cinema Amber ========== */
+:root:not(.dark) {
+  --theme-primary: #c2410c;
+  --theme-primary-hover: #9a3412;
+  --theme-bg: #f5e6d3;
+  --theme-bg-secondary: #fff8ee;
+  --theme-text: #3b2412;
+  --theme-text-secondary: #8a5a2b;
+  --theme-border: #e3c49b;
+}
+
+:root:not(.dark) body {
+  background: linear-gradient(180deg, #f6ead9 0%, #f0d8b4 45%, #e6bd83 100%) !important;
+  background-attachment: fixed !important;
+  color: var(--theme-text) !important;
+}
+
+.dark {
+  --theme-primary: #f59e0b;
+  --theme-primary-hover: #d97706;
+  --theme-bg: #2a160d;
+  --theme-bg-secondary: #3a2013;
+  --theme-text: #fdf4e7;
+  --theme-text-secondary: #dfb98a;
+  --theme-border: #6e3d18;
+}
+
+html.dark body {
+  background: linear-gradient(180deg, #17100b 0%, #2f1a10 24%, #5d2f12 52%, #914d18 78%, #b46e1d 100%) !important;
+  background-attachment: fixed !important;
+  color: var(--theme-text) !important;
+}
+
+/* 侧边栏 / 毛玻璃面板 */
+:root:not(.dark) [class*="bg-white/40"] {
+  background: rgba(255, 248, 238, 0.78) !important;
+  border-color: rgba(160, 100, 40, 0.22) !important;
+}
+
+.dark [class*="bg-white/40"],
+.dark [class*="bg-gray-900/70"] {
+  background: rgba(26, 15, 9, 0.74) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border-color: rgba(190, 116, 40, 0.3) !important;
+}
+
+/* logo：影院拍板 + 暖橙字 */
+a[href="/"] > span[class*="text-2xl"]::before {
+  content: "\1F3AC ";
+}
+
+[class*="text-green-600"],
+[class*="text-blue-500"],
+[class*="text-blue-600"] {
+  color: var(--theme-primary) !important;
+}
+
+/* 导航激活态 / 主色按钮 */
+[class*="bg-green-500/20"],
+[class*="bg-blue-600"],
+[class*="bg-green-600"],
+[class*="hover:bg-blue-700"],
+[class*="hover:bg-green-700"] {
+  background: var(--theme-primary) !important;
+}
+
+[class*="data-[active=true]:text-green-700"],
+[class*="data-[active=true]:text-blue-700"] {
+  color: var(--theme-primary) !important;
+}
+
+[class*="border-blue-500"],
+[class*="ring-blue-200"],
+[class*="ring-blue-500"] {
+  --tw-ring-color: rgba(245, 158, 11, 0.55) !important;
+  border-color: var(--theme-primary) !important;
+}
+
+/* 内容卡片 / 面板背景：暖棕半透明 */
+:root:not(.dark) [class*="bg-white"]:not([class*="bg-white/40"]),
+:root:not(.dark) [class*="bg-gray-50"],
+:root:not(.dark) [class*="bg-gray-100"] {
+  background: rgba(255, 250, 242, 0.86) !important;
+}
+
+.dark [class*="bg-gray-800"],
+.dark [class*="bg-gray-900"],
+.dark [class*="bg-white"]:not([class*="bg-white/40"]) {
+  background: rgba(43, 25, 15, 0.8) !important;
+  color: var(--theme-text) !important;
+  border-color: rgba(190, 116, 40, 0.24) !important;
+}
+
+/* 文字 */
+:root:not(.dark) [class*="text-gray-"],
+.dark [class*="text-gray-"] {
+  color: var(--theme-text-secondary) !important;
+}
+
+:root:not(.dark) [class*="text-gray-900"],
+.dark [class*="text-gray-100"],
+.dark [class*="text-gray-200"] {
+  color: var(--theme-text) !important;
+}
+
+/* 边框 */
+[class*="border-gray-200"],
+[class*="border-gray-300"],
+[class*="border-gray-600"],
+[class*="border-gray-700"] {
+  border-color: var(--theme-border) !important;
+}
+
+/* 轮播主按钮：白色胶囊，和截图一致 */
+[class*="bg-gray-500/30"] {
+  background: #fff !important;
+  color: #35200f !important;
+  border-radius: 9999px !important;
+  padding-left: 1.75rem !important;
+  padding-right: 1.75rem !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+[class*="bg-gray-500/30"] svg {
+  fill: #35200f !important;
+}
+
+/* 轮播评分角标：暖橙底 */
+[class*="bg-yellow-500"] {
+  background: var(--theme-primary) !important;
+  color: #fff !important;
+}
+
+/* 顶部进度条 */
+#nprogress .bar,
+.dark #nprogress .bar {
+  background: #f59e0b !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.85), 0 0 5px rgba(245, 158, 11, 0.6) !important;
+}
+
+/* 卡片圆角更柔和 */
+[class*="rounded-lg"] {
+  border-radius: 0.75rem !important;
+}
+`,
+  },
   dark_blue: {
     name: '深蓝夜空',
     description: '深邃的蓝色科技风格',
